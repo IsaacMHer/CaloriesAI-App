@@ -1,7 +1,8 @@
 /// Constantes relacionadas con la API
 class ApiConstants {
   // Base URL - Cambiar según el entorno
-  static const String baseUrl = 'https://tu-vps.com/api';
+  // static const String baseUrl = 'https://tu-vps.com/api';
+  static const String baseUrl = 'http://192.168.100.53:5015/api';
   // Para desarrollo local en Android emulator: 'http://10.0.2.2:5000/api'
   // Para desarrollo local en iOS simulator: 'http://localhost:5000/api'
 
