@@ -1,169 +1,202 @@
 import 'package:equatable/equatable.dart';
 import 'food_model.dart';
 
-/// Item de alimento dentro de una comida con su cantidad específica
-class MealItemModel extends Equatable {
-  final FoodModel food;
-  final double quantity; // cantidad en la unidad del alimento
-  final String unit; // 'g', 'ml', 'unit'
-
-  const MealItemModel({
-    required this.food,
-    required this.quantity,
-    this.unit = 'g',
-  });
-
-  /// Calorías totales de este item
-  double get totalCalories => (food.calories / food.servingSize) * quantity;
-
-  /// Proteína total de este item
-  double get totalProtein => (food.protein / food.servingSize) * quantity;
-
-  /// Carbohidratos totales de este item
-  double get totalCarbs => (food.carbs / food.servingSize) * quantity;
-
-  /// Grasas totales de este item
-  double get totalFats => (food.fats / food.servingSize) * quantity;
-
-  /// Crea una instancia desde JSON
-  factory MealItemModel.fromJson(Map<String, dynamic> json) {
-    return MealItemModel(
-      food: FoodModel.fromJson(json['food']),
-      quantity: (json['quantity'] ?? 0).toDouble(),
-      unit: json['unit'] ?? 'g',
-    );
-  }
-
-  /// Convierte la instancia a JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'foodId': food.id,
-      'quantity': quantity,
-      'unit': unit,
-    };
-  }
-
-  /// Crea una copia con campos modificados
-  MealItemModel copyWith({
-    FoodModel? food,
-    double? quantity,
-    String? unit,
-  }) {
-    return MealItemModel(
-      food: food ?? this.food,
-      quantity: quantity ?? this.quantity,
-      unit: unit ?? this.unit,
-    );
-  }
-
-  @override
-  List<Object?> get props => [food, quantity, unit];
+/// MealType enum del backend
+enum MealType {
+  breakfast, // 0
+  lunch, // 1
+  dinner, // 2
+  snack, // 3
 }
 
-/// Modelo de comida que agrupa alimentos con información adicional
-class MealModel extends Equatable {
-  final String id;
-  final String userId;
-  final String mealType; // 'breakfast', 'lunch', 'dinner', 'snack'
-  final List<MealItemModel> items;
-  final String? imageUrl;
-  final String? notes;
-  final DateTime dateTime;
-  final DateTime? createdAt;
+extension MealTypeExtension on MealType {
+  int toInt() => index;
 
-  const MealModel({
-    required this.id,
-    required this.userId,
-    required this.mealType,
-    required this.items,
-    this.imageUrl,
-    this.notes,
-    required this.dateTime,
-    this.createdAt,
-  });
+  static MealType fromInt(int value) => MealType.values[value];
 
-  /// Calorías totales de la comida
-  double get totalCalories =>
-      items.fold(0, (sum, item) => sum + item.totalCalories);
-
-  /// Proteína total de la comida
-  double get totalProtein =>
-      items.fold(0, (sum, item) => sum + item.totalProtein);
-
-  /// Carbohidratos totales de la comida
-  double get totalCarbs => items.fold(0, (sum, item) => sum + item.totalCarbs);
-
-  /// Grasas totales de la comida
-  double get totalFats => items.fold(0, (sum, item) => sum + item.totalFats);
-
-  /// Nombre del tipo de comida en español
-  String get mealTypeName {
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
+  String get displayName {
+    switch (this) {
+      case MealType.breakfast:
         return 'Desayuno';
-      case 'lunch':
+      case MealType.lunch:
         return 'Almuerzo';
-      case 'dinner':
+      case MealType.dinner:
         return 'Cena';
-      case 'snack':
+      case MealType.snack:
         return 'Snack';
-      default:
-        return mealType;
     }
   }
+}
 
-  /// Crea una instancia desde JSON
-  factory MealModel.fromJson(Map<String, dynamic> json) {
-    return MealModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      mealType: json['mealType'] ?? 'snack',
-      items: (json['items'] as List<dynamic>?)
-              ?.map((item) => MealItemModel.fromJson(item))
-              .toList() ??
-          [],
-      imageUrl: json['imageUrl'],
-      notes: json['notes'],
-      dateTime: json['dateTime'] != null
-          ? DateTime.parse(json['dateTime'])
-          : DateTime.now(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+/// MealFoodDto - alimento dentro de una comida
+class MealFoodDto extends Equatable {
+  final int id;
+  final int foodId;
+  final String foodName;
+  final double quantity;
+  final String unit;
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final FoodModel? foodDetails;
+
+  const MealFoodDto({
+    required this.id,
+    required this.foodId,
+    required this.foodName,
+    required this.quantity,
+    required this.unit,
+    required this.calories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+    this.foodDetails,
+  });
+
+  factory MealFoodDto.fromJson(Map<String, dynamic> json) {
+    return MealFoodDto(
+      id: json['id'] as int,
+      foodId: json['foodId'] as int,
+      foodName: json['foodName'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+      calories: (json['calories'] as num).toDouble(),
+      protein: (json['protein'] as num).toDouble(),
+      carbs: (json['carbs'] as num).toDouble(),
+      fat: (json['fat'] as num).toDouble(),
+      foodDetails: json['foodDetails'] != null
+          ? FoodModel.fromJson(json['foodDetails'] as Map<String, dynamic>)
           : null,
     );
   }
 
-  /// Convierte la instancia a JSON
   Map<String, dynamic> toJson() {
     return {
-      'mealType': mealType,
-      'items': items.map((item) => item.toJson()).toList(),
-      'imageUrl': imageUrl,
-      'notes': notes,
-      'dateTime': dateTime.toIso8601String(),
+      'id': id,
+      'foodId': foodId,
+      'foodName': foodName,
+      'quantity': quantity,
+      'unit': unit,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'foodDetails': foodDetails?.toJson(),
     };
   }
 
-  /// Crea una copia con campos modificados
+  @override
+  List<Object?> get props => [
+        id,
+        foodId,
+        foodName,
+        quantity,
+        unit,
+        calories,
+        protein,
+        carbs,
+        fat,
+        foodDetails,
+      ];
+}
+
+/// MealDto - comida completa
+class MealModel extends Equatable {
+  final int id;
+  final int userId;
+  final DateTime date;
+  final MealType mealType;
+  final String? photoUrl;
+  final String? notes;
+  final double totalCalories;
+  final double totalProtein;
+  final double totalCarbs;
+  final double totalFat;
+  final DateTime createdAt;
+  final List<MealFoodDto> foods;
+
+  const MealModel({
+    required this.id,
+    required this.userId,
+    required this.date,
+    required this.mealType,
+    this.photoUrl,
+    this.notes,
+    required this.totalCalories,
+    required this.totalProtein,
+    required this.totalCarbs,
+    required this.totalFat,
+    required this.createdAt,
+    required this.foods,
+  });
+
+  String get mealTypeName => mealType.displayName;
+
+  factory MealModel.fromJson(Map<String, dynamic> json) {
+    return MealModel(
+      id: json['id'] as int,
+      userId: json['userId'] as int,
+      date: DateTime.parse(json['date'] as String),
+      mealType: MealTypeExtension.fromInt(json['mealType'] as int),
+      photoUrl: json['photoUrl'] as String?,
+      notes: json['notes'] as String?,
+      totalCalories: (json['totalCalories'] as num).toDouble(),
+      totalProtein: (json['totalProtein'] as num).toDouble(),
+      totalCarbs: (json['totalCarbs'] as num).toDouble(),
+      totalFat: (json['totalFat'] as num).toDouble(),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      foods: (json['foods'] as List<dynamic>?)
+              ?.map((item) => MealFoodDto.fromJson(item as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'date': date.toIso8601String(),
+      'mealType': mealType.toInt(),
+      'photoUrl': photoUrl,
+      'notes': notes,
+      'totalCalories': totalCalories,
+      'totalProtein': totalProtein,
+      'totalCarbs': totalCarbs,
+      'totalFat': totalFat,
+      'createdAt': createdAt.toIso8601String(),
+      'foods': foods.map((f) => f.toJson()).toList(),
+    };
+  }
+
   MealModel copyWith({
-    String? id,
-    String? userId,
-    String? mealType,
-    List<MealItemModel>? items,
-    String? imageUrl,
+    int? id,
+    int? userId,
+    DateTime? date,
+    MealType? mealType,
+    String? photoUrl,
     String? notes,
-    DateTime? dateTime,
+    double? totalCalories,
+    double? totalProtein,
+    double? totalCarbs,
+    double? totalFat,
     DateTime? createdAt,
+    List<MealFoodDto>? foods,
   }) {
     return MealModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      date: date ?? this.date,
       mealType: mealType ?? this.mealType,
-      items: items ?? this.items,
-      imageUrl: imageUrl ?? this.imageUrl,
+      photoUrl: photoUrl ?? this.photoUrl,
       notes: notes ?? this.notes,
-      dateTime: dateTime ?? this.dateTime,
+      totalCalories: totalCalories ?? this.totalCalories,
+      totalProtein: totalProtein ?? this.totalProtein,
+      totalCarbs: totalCarbs ?? this.totalCarbs,
+      totalFat: totalFat ?? this.totalFat,
       createdAt: createdAt ?? this.createdAt,
+      foods: foods ?? this.foods,
     );
   }
 
@@ -171,11 +204,84 @@ class MealModel extends Equatable {
   List<Object?> get props => [
         id,
         userId,
+        date,
         mealType,
-        items,
-        imageUrl,
+        photoUrl,
         notes,
-        dateTime,
+        totalCalories,
+        totalProtein,
+        totalCarbs,
+        totalFat,
         createdAt,
+        foods,
       ];
+}
+
+/// MealFoodItemRequest - request para agregar alimento a comida
+class MealFoodItemRequest {
+  final int foodId;
+  final double quantity;
+  final String unit;
+
+  MealFoodItemRequest({
+    required this.foodId,
+    required this.quantity,
+    required this.unit,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'foodId': foodId,
+      'quantity': quantity,
+      'unit': unit,
+    };
+  }
+}
+
+/// CreateMealRequest - request para crear/actualizar comida
+class CreateMealRequest {
+  final DateTime date;
+  final MealType mealType;
+  final String? photoUrl;
+  final String? notes;
+  final List<MealFoodItemRequest> foods;
+
+  CreateMealRequest({
+    required this.date,
+    required this.mealType,
+    this.photoUrl,
+    this.notes,
+    required this.foods,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date.toIso8601String(),
+      'mealType': mealType.toInt(),
+      'photoUrl': photoUrl,
+      'notes': notes,
+      'foods': foods.map((f) => f.toJson()).toList(),
+    };
+  }
+}
+
+/// AnalyzeImageResponse - respuesta de análisis de imagen
+class AnalyzeImageResponse {
+  final String? photoUrl;
+  final List<DetectedFoodDto> detectedFoods;
+
+  AnalyzeImageResponse({
+    this.photoUrl,
+    required this.detectedFoods,
+  });
+
+  factory AnalyzeImageResponse.fromJson(Map<String, dynamic> json) {
+    return AnalyzeImageResponse(
+      photoUrl: json['photoUrl'] as String?,
+      detectedFoods: (json['detectedFoods'] as List<dynamic>?)
+              ?.map((item) => DetectedFoodDto.fromJson(item as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
 }

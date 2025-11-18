@@ -1,4 +1,5 @@
 import '../models/user_model.dart';
+import '../models/api_response_model.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../../core/constants/api_constants.dart';
@@ -17,23 +18,34 @@ class AuthRepository {
     required String password,
     required String name,
   }) async {
-    final response = await _apiService.post(
-      ApiConstants.authRegister,
-      data: {
-        'email': email,
-        'password': password,
-        'name': name,
-      },
+    final request = RegisterRequest(
+      email: email,
+      password: password,
+      name: name,
     );
 
-    final token = response.data['token'];
-    final user = UserModel.fromJson(response.data['user']);
+    final response = await _apiService.post(
+      ApiConstants.authRegister,
+      data: request.toJson(),
+    );
+
+    // Desempaquetar ApiResponse<LoginResponse>
+    final apiResponse = ApiResponse<LoginResponse>.fromJson(
+      response.data,
+      (json) => LoginResponse.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al registrar usuario');
+    }
+
+    final loginResponse = apiResponse.data!;
 
     // Guardar token
-    await _storage.saveString(AppConstants.tokenKey, token);
-    await _storage.saveString(AppConstants.userIdKey, user.id);
+    await _storage.saveString(AppConstants.tokenKey, loginResponse.token);
+    await _storage.saveString(AppConstants.userIdKey, loginResponse.user.id.toString());
 
-    return user;
+    return loginResponse.user;
   }
 
   /// Inicia sesión
@@ -41,66 +53,106 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _apiService.post(
-      ApiConstants.authLogin,
-      data: {
-        'email': email,
-        'password': password,
-      },
+    final request = LoginRequest(
+      email: email,
+      password: password,
     );
 
-    final token = response.data['token'];
-    final user = UserModel.fromJson(response.data['user']);
+    final response = await _apiService.post(
+      ApiConstants.authLogin,
+      data: request.toJson(),
+    );
+
+    // Desempaquetar ApiResponse<LoginResponse>
+    final apiResponse = ApiResponse<LoginResponse>.fromJson(
+      response.data,
+      (json) => LoginResponse.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al iniciar sesión');
+    }
+
+    final loginResponse = apiResponse.data!;
 
     // Guardar token
-    await _storage.saveString(AppConstants.tokenKey, token);
-    await _storage.saveString(AppConstants.userIdKey, user.id);
+    await _storage.saveString(AppConstants.tokenKey, loginResponse.token);
+    await _storage.saveString(AppConstants.userIdKey, loginResponse.user.id.toString());
 
-    return user;
+    return loginResponse.user;
   }
 
   /// Obtiene el perfil del usuario autenticado
   Future<UserModel> getProfile() async {
     final response = await _apiService.get(ApiConstants.authProfile);
-    return UserModel.fromJson(response.data);
+
+    // Desempaquetar ApiResponse<UserProfileDto>
+    final apiResponse = ApiResponse<UserModel>.fromJson(
+      response.data,
+      (json) => UserModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener perfil');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Actualiza el perfil del usuario
   Future<UserModel> updateProfile({
-    String? name,
+    required String name,
     double? weight,
     double? height,
     int? age,
-    String? gender,
-    String? activityLevel,
-    String? goal,
+    Gender? gender,
+    ActivityLevel? activityLevel,
   }) async {
-    final data = <String, dynamic>{};
-
-    if (name != null) data['name'] = name;
-    if (weight != null) data['weight'] = weight;
-    if (height != null) data['height'] = height;
-    if (age != null) data['age'] = age;
-    if (gender != null) data['gender'] = gender;
-    if (activityLevel != null) data['activityLevel'] = activityLevel;
-    if (goal != null) data['goal'] = goal;
+    final request = UpdateProfileRequest(
+      name: name,
+      weight: weight,
+      height: height,
+      age: age,
+      gender: gender,
+      activityLevel: activityLevel,
+    );
 
     final response = await _apiService.put(
       ApiConstants.authProfile,
-      data: data,
+      data: request.toJson(),
     );
 
-    return UserModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<UserProfileDto>
+    final apiResponse = ApiResponse<UserModel>.fromJson(
+      response.data,
+      (json) => UserModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al actualizar perfil');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Actualiza la API Key de Gemini
-  Future<UserModel> updateGeminiApiKey(String apiKey) async {
+  Future<void> updateGeminiApiKey(String apiKey) async {
+    final request = UpdateGeminiKeyRequest(geminiApiKey: apiKey);
+
     final response = await _apiService.put(
       ApiConstants.authGeminiKey,
-      data: {'geminiApiKey': apiKey},
+      data: request.toJson(),
     );
 
-    return UserModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<Object>
+    final apiResponse = ApiResponse<dynamic>.fromJson(
+      response.data,
+      null,
+    );
+
+    if (!apiResponse.success) {
+      throw Exception(apiResponse.message ?? 'Error al actualizar API Key');
+    }
   }
 
   /// Cierra sesión

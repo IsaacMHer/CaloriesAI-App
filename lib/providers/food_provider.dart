@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../data/models/food_model.dart';
+import '../data/models/meal_model.dart';
 import '../data/repositories/food_repository.dart';
 
 /// Provider para manejar el estado de alimentos y búsqueda
@@ -7,7 +8,7 @@ class FoodProvider with ChangeNotifier {
   final FoodRepository _foodRepository;
 
   List<FoodModel> _searchResults = [];
-  List<FoodModel> _detectedFoods = [];
+  AnalyzeImageResponse? _analyzeResult;
   List<FoodModel> _customFoods = [];
   bool _isLoading = false;
   bool _isAnalyzing = false;
@@ -17,7 +18,8 @@ class FoodProvider with ChangeNotifier {
 
   // Getters
   List<FoodModel> get searchResults => _searchResults;
-  List<FoodModel> get detectedFoods => _detectedFoods;
+  AnalyzeImageResponse? get analyzeResult => _analyzeResult;
+  List<DetectedFoodDto> get detectedFoods => _analyzeResult?.detectedFoods ?? [];
   List<FoodModel> get customFoods => _customFoods;
   bool get isLoading => _isLoading;
   bool get isAnalyzing => _isAnalyzing;
@@ -30,7 +32,7 @@ class FoodProvider with ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      _detectedFoods = await _foodRepository.analyzeImage(imagePath);
+      _analyzeResult = await _foodRepository.analyzeImage(imagePath);
 
       _isAnalyzing = false;
       notifyListeners();
@@ -70,8 +72,8 @@ class FoodProvider with ChangeNotifier {
     required double calories,
     required double protein,
     required double carbs,
-    required double fats,
-    required double servingSize,
+    required double fat,
+    required String servingSize,
     String servingUnit = 'g',
     String? category,
   }) async {
@@ -84,7 +86,7 @@ class FoodProvider with ChangeNotifier {
         calories: calories,
         protein: protein,
         carbs: carbs,
-        fats: fats,
+        fat: fat,
         servingSize: servingSize,
         servingUnit: servingUnit,
         category: category,
@@ -124,7 +126,7 @@ class FoodProvider with ChangeNotifier {
 
   /// Limpia los alimentos detectados
   void clearDetectedFoods() {
-    _detectedFoods = [];
+    _analyzeResult = null;
     notifyListeners();
   }
 

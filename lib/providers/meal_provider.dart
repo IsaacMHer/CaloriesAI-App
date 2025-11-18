@@ -23,7 +23,7 @@ class MealProvider with ChangeNotifier {
   DateTime get selectedDate => _selectedDate;
 
   /// Comidas agrupadas por tipo
-  List<MealModel> getMealsByType(String mealType) {
+  List<MealModel> getMealsByType(MealType mealType) {
     return _meals.where((meal) => meal.mealType == mealType).toList();
   }
 
@@ -39,7 +39,7 @@ class MealProvider with ChangeNotifier {
   double get totalCarbs => _meals.fold(0, (sum, meal) => sum + meal.totalCarbs);
 
   /// Total de grasas consumidas hoy
-  double get totalFats => _meals.fold(0, (sum, meal) => sum + meal.totalFats);
+  double get totalFat => _meals.fold(0, (sum, meal) => sum + meal.totalFat);
 
   /// Porcentaje de calorías consumidas
   double get caloriesProgress {
@@ -60,9 +60,9 @@ class MealProvider with ChangeNotifier {
   }
 
   /// Porcentaje de grasas consumidas
-  double get fatsProgress {
-    if (_goals == null || _goals!.dailyFats <= 0) return 0;
-    return (totalFats / _goals!.dailyFats) * 100;
+  double get fatProgress {
+    if (_goals == null || _goals!.dailyFat <= 0) return 0;
+    return (totalFat / _goals!.dailyFat) * 100;
   }
 
   /// Cambia la fecha seleccionada y carga las comidas
@@ -87,8 +87,7 @@ class MealProvider with ChangeNotifier {
     required double dailyCalories,
     required double dailyProtein,
     required double dailyCarbs,
-    required double dailyFats,
-    bool autoCalculate = true,
+    required double dailyFat,
   }) async {
     try {
       _setLoading(true);
@@ -98,8 +97,7 @@ class MealProvider with ChangeNotifier {
         dailyCalories: dailyCalories,
         dailyProtein: dailyProtein,
         dailyCarbs: dailyCarbs,
-        dailyFats: dailyFats,
-        autoCalculate: autoCalculate,
+        dailyFat: dailyFat,
       );
 
       _setLoading(false);
@@ -127,30 +125,18 @@ class MealProvider with ChangeNotifier {
   }
 
   /// Crea una nueva comida
-  Future<bool> createMeal({
-    required String mealType,
-    required List<Map<String, dynamic>> items,
-    String? imageUrl,
-    String? notes,
-    DateTime? dateTime,
-  }) async {
+  Future<bool> createMeal(CreateMealRequest request) async {
     try {
       _setLoading(true);
       _errorMessage = null;
 
-      final meal = await _mealRepository.createMeal(
-        mealType: mealType,
-        items: items,
-        imageUrl: imageUrl,
-        notes: notes,
-        dateTime: dateTime,
-      );
+      final meal = await _mealRepository.createMeal(request);
 
       // Agregar a la lista si es de la fecha seleccionada
       final mealDate = DateTime(
-        meal.dateTime.year,
-        meal.dateTime.month,
-        meal.dateTime.day,
+        meal.date.year,
+        meal.date.month,
+        meal.date.day,
       );
       final selectedDateOnly = DateTime(
         _selectedDate.year,
@@ -173,9 +159,9 @@ class MealProvider with ChangeNotifier {
 
   /// Actualiza una comida
   Future<bool> updateMeal({
-    required String mealId,
-    String? mealType,
-    List<Map<String, dynamic>>? items,
+    required int mealId,
+    MealType? mealType,
+    List<MealFoodItemRequest>? foods,
     String? imageUrl,
     String? notes,
   }) async {
@@ -186,7 +172,7 @@ class MealProvider with ChangeNotifier {
       final updatedMeal = await _mealRepository.updateMeal(
         mealId: mealId,
         mealType: mealType,
-        items: items,
+        foods: foods,
         imageUrl: imageUrl,
         notes: notes,
       );
@@ -207,7 +193,7 @@ class MealProvider with ChangeNotifier {
   }
 
   /// Elimina una comida
-  Future<bool> deleteMeal(String mealId) async {
+  Future<bool> deleteMeal(int mealId) async {
     try {
       _setLoading(true);
       _errorMessage = null;

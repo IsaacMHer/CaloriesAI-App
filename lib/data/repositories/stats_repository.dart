@@ -1,4 +1,5 @@
 import '../models/stats_model.dart';
+import '../models/api_response_model.dart';
 import '../services/api_service.dart';
 import '../../core/constants/api_constants.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +11,7 @@ class StatsRepository {
   StatsRepository(this._apiService);
 
   /// Obtiene las estadísticas diarias de una fecha
-  Future<DailyStatsModel> getDailyStats(DateTime date) async {
+  Future<DailySummaryDto> getDailyStats(DateTime date) async {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
 
     final response = await _apiService.get(
@@ -18,22 +19,71 @@ class StatsRepository {
       queryParameters: {'date': dateStr},
     );
 
-    return DailyStatsModel.fromJson(response.data);
-  }
-
-  /// Obtiene datos para gráficas según el período
-  /// period: número de días (7, 30, etc.)
-  Future<ChartDataModel> getChartData(int period) async {
-    final response = await _apiService.get(
-      ApiConstants.statsCharts,
-      queryParameters: {'period': period},
+    // Desempaquetar ApiResponse<DailySummaryDto>
+    final apiResponse = ApiResponse<DailySummaryDto>.fromJson(
+      response.data,
+      (json) => DailySummaryDto.fromJson(json as Map<String, dynamic>),
     );
 
-    return ChartDataModel.fromJson(response.data);
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener estadísticas diarias');
+    }
+
+    return apiResponse.data!;
   }
 
-  /// Obtiene datos para gráficas con rango de fechas personalizado
-  Future<ChartDataModel> getChartDataByRange({
+  /// Obtiene estadísticas semanales
+  Future<List<DailySummaryDto>> getWeeklyStats(DateTime startDate) async {
+    final dateStr = DateFormat('yyyy-MM-dd').format(startDate);
+
+    final response = await _apiService.get(
+      ApiConstants.statsWeekly,
+      queryParameters: {'startDate': dateStr},
+    );
+
+    // Desempaquetar ApiResponse<List<DailySummaryDto>>
+    final apiResponse = ApiResponse<List<DailySummaryDto>>.fromJson(
+      response.data,
+      (json) {
+        final list = json as List<dynamic>;
+        return list.map((item) => DailySummaryDto.fromJson(item as Map<String, dynamic>)).toList();
+      },
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener estadísticas semanales');
+    }
+
+    return apiResponse.data!;
+  }
+
+  /// Obtiene estadísticas mensuales
+  Future<List<DailySummaryDto>> getMonthlyStats(DateTime startDate) async {
+    final dateStr = DateFormat('yyyy-MM-dd').format(startDate);
+
+    final response = await _apiService.get(
+      ApiConstants.statsMonthly,
+      queryParameters: {'startDate': dateStr},
+    );
+
+    // Desempaquetar ApiResponse<List<DailySummaryDto>>
+    final apiResponse = ApiResponse<List<DailySummaryDto>>.fromJson(
+      response.data,
+      (json) {
+        final list = json as List<dynamic>;
+        return list.map((item) => DailySummaryDto.fromJson(item as Map<String, dynamic>)).toList();
+      },
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener estadísticas mensuales');
+    }
+
+    return apiResponse.data!;
+  }
+
+  /// Obtiene datos para gráficas con rango de fechas
+  Future<ChartDataDto> getChartData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
@@ -48,6 +98,16 @@ class StatsRepository {
       },
     );
 
-    return ChartDataModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<ChartDataDto>
+    final apiResponse = ApiResponse<ChartDataDto>.fromJson(
+      response.data,
+      (json) => ChartDataDto.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener datos de gráficas');
+    }
+
+    return apiResponse.data!;
   }
 }

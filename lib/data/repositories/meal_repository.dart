@@ -1,5 +1,6 @@
 import '../models/meal_model.dart';
 import '../models/goal_model.dart';
+import '../models/api_response_model.dart';
 import '../services/api_service.dart';
 import '../../core/constants/api_constants.dart';
 import 'package:intl/intl.dart';
@@ -13,72 +14,94 @@ class MealRepository {
   // ========== MEALS ==========
 
   /// Crea una nueva comida
-  Future<MealModel> createMeal({
-    required String mealType,
-    required List<Map<String, dynamic>> items,
-    String? imageUrl,
-    String? notes,
-    DateTime? dateTime,
-  }) async {
+  Future<MealModel> createMeal(CreateMealRequest request) async {
     final response = await _apiService.post(
       ApiConstants.meals,
-      data: {
-        'mealType': mealType,
-        'items': items,
-        'imageUrl': imageUrl,
-        'notes': notes,
-        'dateTime': (dateTime ?? DateTime.now()).toIso8601String(),
-      },
+      data: request.toJson(),
     );
 
-    return MealModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<MealDto>
+    final apiResponse = ApiResponse<MealModel>.fromJson(
+      response.data,
+      (json) => MealModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al crear comida');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Obtiene las comidas de una fecha específica
   Future<List<MealModel>> getMealsByDate(DateTime date) async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-
     final response = await _apiService.get(
       ApiConstants.meals,
-      queryParameters: {'date': dateStr},
+      queryParameters: {'date': date.toIso8601String()},
     );
 
-    final mealsData = response.data['meals'] as List<dynamic>;
-    return mealsData.map((json) => MealModel.fromJson(json)).toList();
+    // Desempaquetar ApiResponse<List<MealDto>>
+    final apiResponse = ApiResponse<List<MealModel>>.fromJson(
+      response.data,
+      (json) => (json as List<dynamic>)
+          .map((item) => MealModel.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener comidas');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Obtiene una comida por ID
-  Future<MealModel> getMealById(String mealId) async {
-    final response = await _apiService.get('${ApiConstants.meals}/$mealId');
-    return MealModel.fromJson(response.data);
+  Future<MealModel> getMealById(int mealId) async {
+    final response = await _apiService.get(ApiConstants.mealById(mealId));
+
+    // Desempaquetar ApiResponse<MealDto>
+    final apiResponse = ApiResponse<MealModel>.fromJson(
+      response.data,
+      (json) => MealModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener comida');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Actualiza una comida
-  Future<MealModel> updateMeal({
-    required String mealId,
-    String? mealType,
-    List<Map<String, dynamic>>? items,
-    String? imageUrl,
-    String? notes,
-  }) async {
-    final data = <String, dynamic>{};
-
-    if (mealType != null) data['mealType'] = mealType;
-    if (items != null) data['items'] = items;
-    if (imageUrl != null) data['imageUrl'] = imageUrl;
-    if (notes != null) data['notes'] = notes;
-
+  Future<MealModel> updateMeal(int mealId, CreateMealRequest request) async {
     final response = await _apiService.put(
-      '${ApiConstants.meals}/$mealId',
-      data: data,
+      ApiConstants.updateMeal(mealId),
+      data: request.toJson(),
     );
 
-    return MealModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<MealDto>
+    final apiResponse = ApiResponse<MealModel>.fromJson(
+      response.data,
+      (json) => MealModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al actualizar comida');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Elimina una comida
-  Future<void> deleteMeal(String mealId) async {
-    await _apiService.delete('${ApiConstants.meals}/$mealId');
+  Future<void> deleteMeal(int mealId) async {
+    final response = await _apiService.delete(ApiConstants.deleteMeal(mealId));
+
+    // Desempaquetar ApiResponse<Object>
+    final apiResponse = ApiResponse<dynamic>.fromJson(response.data, null);
+
+    if (!apiResponse.success) {
+      throw Exception(apiResponse.message ?? 'Error al eliminar comida');
+    }
   }
 
   // ========== GOALS ==========
@@ -86,28 +109,54 @@ class MealRepository {
   /// Obtiene las metas nutricionales del usuario
   Future<GoalModel> getGoals() async {
     final response = await _apiService.get(ApiConstants.goals);
-    return GoalModel.fromJson(response.data);
+
+    // Desempaquetar ApiResponse<NutritionalGoalDto>
+    final apiResponse = ApiResponse<GoalModel>.fromJson(
+      response.data,
+      (json) => GoalModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener metas');
+    }
+
+    return apiResponse.data!;
   }
 
   /// Actualiza las metas nutricionales
-  Future<GoalModel> updateGoals({
-    required double dailyCalories,
-    required double dailyProtein,
-    required double dailyCarbs,
-    required double dailyFats,
-    bool autoCalculate = true,
-  }) async {
+  Future<GoalModel> updateGoals(UpdateGoalRequest request) async {
     final response = await _apiService.put(
       ApiConstants.goals,
-      data: {
-        'dailyCalories': dailyCalories,
-        'dailyProtein': dailyProtein,
-        'dailyCarbs': dailyCarbs,
-        'dailyFats': dailyFats,
-        'autoCalculate': autoCalculate,
-      },
+      data: request.toJson(),
     );
 
-    return GoalModel.fromJson(response.data);
+    // Desempaquetar ApiResponse<NutritionalGoalDto>
+    final apiResponse = ApiResponse<GoalModel>.fromJson(
+      response.data,
+      (json) => GoalModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al actualizar metas');
+    }
+
+    return apiResponse.data!;
+  }
+
+  /// Obtiene metas sugeridas basadas en el perfil del usuario
+  Future<GoalModel> getSuggestedGoals() async {
+    final response = await _apiService.post(ApiConstants.goalsSuggested);
+
+    // Desempaquetar ApiResponse<NutritionalGoalDto>
+    final apiResponse = ApiResponse<GoalModel>.fromJson(
+      response.data,
+      (json) => GoalModel.fromJson(json as Map<String, dynamic>),
+    );
+
+    if (!apiResponse.success || apiResponse.data == null) {
+      throw Exception(apiResponse.message ?? 'Error al obtener metas sugeridas');
+    }
+
+    return apiResponse.data!;
   }
 }

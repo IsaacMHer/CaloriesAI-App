@@ -7,8 +7,10 @@ import '../core/constants/app_constants.dart';
 class StatsProvider with ChangeNotifier {
   final StatsRepository _statsRepository;
 
-  DailyStatsModel? _dailyStats;
-  ChartDataModel? _chartData;
+  DailySummaryDto? _dailyStats;
+  List<DailySummaryDto>? _weeklyStats;
+  List<DailySummaryDto>? _monthlyStats;
+  ChartDataDto? _chartData;
   bool _isLoading = false;
   String? _errorMessage;
   int _selectedPeriod = AppConstants.period7Days;
@@ -16,8 +18,10 @@ class StatsProvider with ChangeNotifier {
   StatsProvider(this._statsRepository);
 
   // Getters
-  DailyStatsModel? get dailyStats => _dailyStats;
-  ChartDataModel? get chartData => _chartData;
+  DailySummaryDto? get dailyStats => _dailyStats;
+  List<DailySummaryDto>? get weeklyStats => _weeklyStats;
+  List<DailySummaryDto>? get monthlyStats => _monthlyStats;
+  ChartDataDto? get chartData => _chartData;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get selectedPeriod => _selectedPeriod;
@@ -44,13 +48,49 @@ class StatsProvider with ChangeNotifier {
     }
   }
 
+  /// Carga las estadísticas semanales
+  Future<void> loadWeeklyStats(DateTime startDate) async {
+    try {
+      _setLoading(true);
+      _errorMessage = null;
+
+      _weeklyStats = await _statsRepository.getWeeklyStats(startDate);
+
+      _setLoading(false);
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+    }
+  }
+
+  /// Carga las estadísticas mensuales
+  Future<void> loadMonthlyStats(DateTime startDate) async {
+    try {
+      _setLoading(true);
+      _errorMessage = null;
+
+      _monthlyStats = await _statsRepository.getMonthlyStats(startDate);
+
+      _setLoading(false);
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+    }
+  }
+
   /// Carga los datos para gráficas
   Future<void> loadChartData() async {
     try {
       _setLoading(true);
       _errorMessage = null;
 
-      _chartData = await _statsRepository.getChartData(_selectedPeriod);
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(Duration(days: _selectedPeriod));
+
+      _chartData = await _statsRepository.getChartData(
+        startDate: startDate,
+        endDate: endDate,
+      );
 
       _setLoading(false);
     } catch (e) {
@@ -68,7 +108,7 @@ class StatsProvider with ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      _chartData = await _statsRepository.getChartDataByRange(
+      _chartData = await _statsRepository.getChartData(
         startDate: startDate,
         endDate: endDate,
       );

@@ -1,16 +1,40 @@
 import 'package:equatable/equatable.dart';
 
-/// Modelo de metas nutricionales del usuario
+/// GoalType enum del backend
+enum GoalType {
+  lose, // 0
+  maintain, // 1
+  gain, // 2
+}
+
+extension GoalTypeExtension on GoalType {
+  int toInt() => index;
+
+  static GoalType fromInt(int value) => GoalType.values[value];
+
+  String get displayName {
+    switch (this) {
+      case GoalType.lose:
+        return 'Perder peso';
+      case GoalType.maintain:
+        return 'Mantener peso';
+      case GoalType.gain:
+        return 'Ganar peso';
+    }
+  }
+}
+
+/// NutritionalGoalDto - metas nutricionales del usuario
 class GoalModel extends Equatable {
-  final String id;
-  final String userId;
+  final int id;
+  final int userId;
   final double dailyCalories;
-  final double dailyProtein; // gramos
-  final double dailyCarbs; // gramos
-  final double dailyFats; // gramos
-  final bool autoCalculate; // si se calculan automáticamente
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final double dailyProtein;
+  final double dailyCarbs;
+  final double dailyFat;
+  final GoalType goalType;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const GoalModel({
     required this.id,
@@ -18,10 +42,10 @@ class GoalModel extends Equatable {
     required this.dailyCalories,
     required this.dailyProtein,
     required this.dailyCarbs,
-    required this.dailyFats,
-    this.autoCalculate = true,
-    this.createdAt,
-    this.updatedAt,
+    required this.dailyFat,
+    required this.goalType,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   /// Calorías de proteína (4 kcal por gramo)
@@ -31,7 +55,7 @@ class GoalModel extends Equatable {
   double get carbsCalories => dailyCarbs * 4;
 
   /// Calorías de grasas (9 kcal por gramo)
-  double get fatsCalories => dailyFats * 9;
+  double get fatCalories => dailyFat * 9;
 
   /// Porcentaje de proteína
   double get proteinPercentage =>
@@ -42,48 +66,45 @@ class GoalModel extends Equatable {
       dailyCalories > 0 ? (carbsCalories / dailyCalories) * 100 : 0;
 
   /// Porcentaje de grasas
-  double get fatsPercentage =>
-      dailyCalories > 0 ? (fatsCalories / dailyCalories) * 100 : 0;
+  double get fatPercentage =>
+      dailyCalories > 0 ? (fatCalories / dailyCalories) * 100 : 0;
 
-  /// Crea una instancia desde JSON
   factory GoalModel.fromJson(Map<String, dynamic> json) {
     return GoalModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      dailyCalories: (json['dailyCalories'] ?? 2000).toDouble(),
-      dailyProtein: (json['dailyProtein'] ?? 150).toDouble(),
-      dailyCarbs: (json['dailyCarbs'] ?? 200).toDouble(),
-      dailyFats: (json['dailyFats'] ?? 65).toDouble(),
-      autoCalculate: json['autoCalculate'] ?? true,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
-          : null,
+      id: json['id'] as int,
+      userId: json['userId'] as int,
+      dailyCalories: (json['dailyCalories'] as num).toDouble(),
+      dailyProtein: (json['dailyProtein'] as num).toDouble(),
+      dailyCarbs: (json['dailyCarbs'] as num).toDouble(),
+      dailyFat: (json['dailyFat'] as num).toDouble(),
+      goalType: GoalTypeExtension.fromInt(json['goalType'] as int),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
 
-  /// Convierte la instancia a JSON
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'userId': userId,
       'dailyCalories': dailyCalories,
       'dailyProtein': dailyProtein,
       'dailyCarbs': dailyCarbs,
-      'dailyFats': dailyFats,
-      'autoCalculate': autoCalculate,
+      'dailyFat': dailyFat,
+      'goalType': goalType.toInt(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
-  /// Crea una copia con campos modificados
   GoalModel copyWith({
-    String? id,
-    String? userId,
+    int? id,
+    int? userId,
     double? dailyCalories,
     double? dailyProtein,
     double? dailyCarbs,
-    double? dailyFats,
-    bool? autoCalculate,
+    double? dailyFat,
+    GoalType? goalType,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -93,8 +114,8 @@ class GoalModel extends Equatable {
       dailyCalories: dailyCalories ?? this.dailyCalories,
       dailyProtein: dailyProtein ?? this.dailyProtein,
       dailyCarbs: dailyCarbs ?? this.dailyCarbs,
-      dailyFats: dailyFats ?? this.dailyFats,
-      autoCalculate: autoCalculate ?? this.autoCalculate,
+      dailyFat: dailyFat ?? this.dailyFat,
+      goalType: goalType ?? this.goalType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -107,9 +128,36 @@ class GoalModel extends Equatable {
         dailyCalories,
         dailyProtein,
         dailyCarbs,
-        dailyFats,
-        autoCalculate,
+        dailyFat,
+        goalType,
         createdAt,
         updatedAt,
       ];
+}
+
+/// UpdateGoalRequest - request para actualizar metas
+class UpdateGoalRequest {
+  final double dailyCalories;
+  final double dailyProtein;
+  final double dailyCarbs;
+  final double dailyFat;
+  final GoalType goalType;
+
+  UpdateGoalRequest({
+    required this.dailyCalories,
+    required this.dailyProtein,
+    required this.dailyCarbs,
+    required this.dailyFat,
+    required this.goalType,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'dailyCalories': dailyCalories,
+      'dailyProtein': dailyProtein,
+      'dailyCarbs': dailyCarbs,
+      'dailyFat': dailyFat,
+      'goalType': goalType.toInt(),
+    };
+  }
 }

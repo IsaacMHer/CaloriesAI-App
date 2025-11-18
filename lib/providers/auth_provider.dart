@@ -83,13 +83,12 @@ class AuthProvider with ChangeNotifier {
 
   /// Actualiza el perfil del usuario
   Future<bool> updateProfile({
-    String? name,
+    required String name,
     double? weight,
     double? height,
     int? age,
-    String? gender,
-    String? activityLevel,
-    String? goal,
+    Gender? gender,
+    ActivityLevel? activityLevel,
   }) async {
     try {
       _setLoading(true);
@@ -102,7 +101,6 @@ class AuthProvider with ChangeNotifier {
         age: age,
         gender: gender,
         activityLevel: activityLevel,
-        goal: goal,
       );
 
       _setLoading(false);
@@ -120,7 +118,10 @@ class AuthProvider with ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      _user = await _authRepository.updateGeminiApiKey(apiKey);
+      await _authRepository.updateGeminiApiKey(apiKey);
+
+      // Recargar el perfil para obtener hasGeminiApiKey actualizado
+      await loadProfile();
 
       _setLoading(false);
       return true;

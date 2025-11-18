@@ -1,19 +1,31 @@
 import 'package:equatable/equatable.dart';
 
-/// Modelo de alimento con información nutricional
+/// FoodSource enum del backend
+enum FoodSource {
+  usda, // 0
+  custom, // 1
+  other, // 2
+}
+
+extension FoodSourceExtension on FoodSource {
+  int toInt() => index;
+
+  static FoodSource fromInt(int value) => FoodSource.values[value];
+}
+
+/// FoodDto - coincide con el backend
 class FoodModel extends Equatable {
-  final String id;
+  final int id;
   final String name;
   final double calories;
-  final double protein; // gramos
-  final double carbs; // gramos
-  final double fats; // gramos
-  final double servingSize; // gramos o ml
-  final String? servingUnit; // 'g', 'ml', 'unit'
+  final double protein;
+  final double carbs;
+  final double fat;
+  final String servingSize;
   final String? category;
-  final String? source; // 'usda', 'custom', 'ai'
-  final String? userId; // si es alimento personalizado
-  final DateTime? createdAt;
+  final bool isCustom;
+  final FoodSource source;
+  final String? externalId;
 
   const FoodModel({
     required this.id,
@@ -21,64 +33,58 @@ class FoodModel extends Equatable {
     required this.calories,
     required this.protein,
     required this.carbs,
-    required this.fats,
+    required this.fat,
     required this.servingSize,
-    this.servingUnit = 'g',
     this.category,
-    this.source,
-    this.userId,
-    this.createdAt,
+    required this.isCustom,
+    required this.source,
+    this.externalId,
   });
 
-  /// Crea una instancia desde JSON
   factory FoodModel.fromJson(Map<String, dynamic> json) {
     return FoodModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
-      calories: (json['calories'] ?? 0).toDouble(),
-      protein: (json['protein'] ?? 0).toDouble(),
-      carbs: (json['carbs'] ?? 0).toDouble(),
-      fats: (json['fats'] ?? 0).toDouble(),
-      servingSize: (json['servingSize'] ?? 100).toDouble(),
-      servingUnit: json['servingUnit'] ?? 'g',
-      category: json['category'],
-      source: json['source'],
-      userId: json['userId'],
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : null,
+      id: json['id'] as int,
+      name: json['name'] as String,
+      calories: (json['calories'] as num).toDouble(),
+      protein: (json['protein'] as num).toDouble(),
+      carbs: (json['carbs'] as num).toDouble(),
+      fat: (json['fat'] as num).toDouble(),
+      servingSize: json['servingSize'] as String,
+      category: json['category'] as String?,
+      isCustom: json['isCustom'] as bool,
+      source: FoodSourceExtension.fromInt(json['source'] as int),
+      externalId: json['externalId'] as String?,
     );
   }
 
-  /// Convierte la instancia a JSON
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'calories': calories,
       'protein': protein,
       'carbs': carbs,
-      'fats': fats,
+      'fat': fat,
       'servingSize': servingSize,
-      'servingUnit': servingUnit,
       'category': category,
-      'source': source,
+      'isCustom': isCustom,
+      'source': source.toInt(),
+      'externalId': externalId,
     };
   }
 
-  /// Crea una copia con campos modificados
   FoodModel copyWith({
-    String? id,
+    int? id,
     String? name,
     double? calories,
     double? protein,
     double? carbs,
-    double? fats,
-    double? servingSize,
-    String? servingUnit,
+    double? fat,
+    String? servingSize,
     String? category,
-    String? source,
-    String? userId,
-    DateTime? createdAt,
+    bool? isCustom,
+    FoodSource? source,
+    String? externalId,
   }) {
     return FoodModel(
       id: id ?? this.id,
@@ -86,13 +92,12 @@ class FoodModel extends Equatable {
       calories: calories ?? this.calories,
       protein: protein ?? this.protein,
       carbs: carbs ?? this.carbs,
-      fats: fats ?? this.fats,
+      fat: fat ?? this.fat,
       servingSize: servingSize ?? this.servingSize,
-      servingUnit: servingUnit ?? this.servingUnit,
       category: category ?? this.category,
+      isCustom: isCustom ?? this.isCustom,
       source: source ?? this.source,
-      userId: userId ?? this.userId,
-      createdAt: createdAt ?? this.createdAt,
+      externalId: externalId ?? this.externalId,
     );
   }
 
@@ -103,12 +108,100 @@ class FoodModel extends Equatable {
         calories,
         protein,
         carbs,
-        fats,
+        fat,
         servingSize,
-        servingUnit,
         category,
+        isCustom,
         source,
-        userId,
-        createdAt,
+        externalId,
       ];
+}
+
+/// DetectedFoodDto - alimento detectado por IA
+class DetectedFoodDto extends Equatable {
+  final String name;
+  final double estimatedQuantity;
+  final String unit;
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+
+  const DetectedFoodDto({
+    required this.name,
+    required this.estimatedQuantity,
+    required this.unit,
+    required this.calories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+  });
+
+  factory DetectedFoodDto.fromJson(Map<String, dynamic> json) {
+    return DetectedFoodDto(
+      name: json['name'] as String,
+      estimatedQuantity: (json['estimatedQuantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+      calories: (json['calories'] as num).toDouble(),
+      protein: (json['protein'] as num).toDouble(),
+      carbs: (json['carbs'] as num).toDouble(),
+      fat: (json['fat'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'estimatedQuantity': estimatedQuantity,
+      'unit': unit,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+        name,
+        estimatedQuantity,
+        unit,
+        calories,
+        protein,
+        carbs,
+        fat,
+      ];
+}
+
+/// CreateCustomFoodRequest - request para crear alimento personalizado
+class CreateCustomFoodRequest {
+  final String name;
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final String servingSize;
+  final String? category;
+
+  CreateCustomFoodRequest({
+    required this.name,
+    required this.calories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+    required this.servingSize,
+    this.category,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'servingSize': servingSize,
+      'category': category,
+    };
+  }
 }
