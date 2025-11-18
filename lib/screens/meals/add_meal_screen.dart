@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../providers/food_provider.dart';
-import '../../providers/meal_provider.dart';
 import '../../core/widgets/loading_indicator.dart';
 
 /// Pantalla para agregar una comida (con foto o manualmente)
