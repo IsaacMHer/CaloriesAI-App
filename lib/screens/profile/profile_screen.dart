@@ -111,7 +111,7 @@ class ProfileScreen extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.water_drop),
                       title: const Text('Grasas'),
-                      trailing: Text(Formatters.grams(goals?.dailyFats ?? 0)),
+                      trailing: Text(Formatters.grams(goals?.dailyFat ?? 0)),
                     ),
                     ListTile(
                       leading: const Icon(Icons.edit),
@@ -132,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.key),
                       title: const Text('API Key de Gemini'),
-                      subtitle: user?.geminiApiKey != null
+                      subtitle: user?.hasGeminiApiKey != false
                           ? const Text('Configurada')
                           : const Text('No configurada'),
                       trailing: const Icon(Icons.chevron_right),
@@ -170,7 +170,7 @@ class ProfileScreen extends StatelessWidget {
 
   void _showApiKeyDialog(BuildContext context, AuthProvider authProvider) {
     final controller = TextEditingController(
-      text: authProvider.user?.geminiApiKey ?? '',
+      text: '',
     );
 
     showDialog(

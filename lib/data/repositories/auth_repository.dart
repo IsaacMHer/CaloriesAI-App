@@ -101,7 +101,6 @@ class AuthRepository {
 
   /// Actualiza el perfil del usuario
   Future<UserModel> updateProfile({
-    required String name,
     double? weight,
     double? height,
     int? age,
@@ -109,7 +108,6 @@ class AuthRepository {
     ActivityLevel? activityLevel,
   }) async {
     final request = UpdateProfileRequest(
-      name: name,
       weight: weight,
       height: height,
       age: age,

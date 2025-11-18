@@ -1,3 +1,4 @@
+import 'package:calories_ai_app/data/models/meal_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -76,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildMealTypeSection(
                   context,
                   'Desayuno',
-                  'breakfast',
+                  MealType.breakfast,
                   Icons.wb_sunny,
                   mealProvider,
                 ),
@@ -84,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildMealTypeSection(
                   context,
                   'Almuerzo',
-                  'lunch',
+                  MealType.lunch,
                   Icons.restaurant,
                   mealProvider,
                 ),
@@ -92,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildMealTypeSection(
                   context,
                   'Cena',
-                  'dinner',
+                  MealType.dinner,
                   Icons.nightlight_round,
                   mealProvider,
                 ),
@@ -100,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildMealTypeSection(
                   context,
                   'Snacks',
-                  'snack',
+                  MealType.snack,
                   Icons.cookie,
                   mealProvider,
                 ),
@@ -178,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             MacroProgressBar(
               label: 'Grasas',
-              current: mealProvider.totalFats,
+              current: mealProvider.totalFat,
               goal: dailyFats,
               color: AppTheme.fatsColor,
             ),
@@ -191,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMealTypeSection(
     BuildContext context,
     String title,
-    String mealType,
+    MealType mealType,
     IconData icon,
     MealProvider mealProvider,
   ) {
@@ -221,11 +222,11 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final meal = meals[index];
                 return ListTile(
-                  leading: meal.imageUrl != null
+                  leading: meal.photoUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            meal.imageUrl!,
+                            meal.photoUrl!,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
@@ -235,10 +236,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : const Icon(Icons.fastfood),
                   title: Text(
-                    '${meal.items.length} alimento${meal.items.length > 1 ? 's' : ''}',
+                    '${meal.foods.length} alimento${meal.foods.length > 1 ? 's' : ''}',
                   ),
                   subtitle: Text(
-                    '${meal.totalCalories.round()} kcal • ${Formatters.time(meal.dateTime)}',
+                    '${meal.totalCalories.round()} kcal • ${Formatters.time(meal.createdAt)}',
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/meal/${meal.id}'),

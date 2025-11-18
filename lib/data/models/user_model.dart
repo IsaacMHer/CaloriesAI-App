@@ -215,7 +215,6 @@ class LoginResponse {
 
 /// UpdateProfileRequest
 class UpdateProfileRequest {
-  final String name;
   final double? weight;
   final double? height;
   final int? age;
@@ -223,7 +222,6 @@ class UpdateProfileRequest {
   final ActivityLevel? activityLevel;
 
   UpdateProfileRequest({
-    required this.name,
     this.weight,
     this.height,
     this.age,
@@ -233,7 +231,6 @@ class UpdateProfileRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
       'weight': weight,
       'height': height,
       'age': age,

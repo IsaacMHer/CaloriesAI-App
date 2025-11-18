@@ -88,17 +88,20 @@ class MealProvider with ChangeNotifier {
     required double dailyProtein,
     required double dailyCarbs,
     required double dailyFat,
+    required GoalType goalType,
   }) async {
     try {
       _setLoading(true);
       _errorMessage = null;
 
-      _goals = await _mealRepository.updateGoals(
-        dailyCalories: dailyCalories,
-        dailyProtein: dailyProtein,
-        dailyCarbs: dailyCarbs,
-        dailyFat: dailyFat,
-      );
+      final request = UpdateGoalRequest(
+      dailyCalories: dailyCalories,
+      dailyProtein: dailyProtein,
+      dailyCarbs: dailyCarbs,
+      dailyFat: dailyFat,
+      goalType: goalType
+    );
+      _goals = await _mealRepository.updateGoals(request);
 
       _setLoading(false);
       return true;
@@ -159,38 +162,41 @@ class MealProvider with ChangeNotifier {
 
   /// Actualiza una comida
   Future<bool> updateMeal({
-    required int mealId,
-    MealType? mealType,
-    List<MealFoodItemRequest>? foods,
-    String? imageUrl,
-    String? notes,
-  }) async {
-    try {
-      _setLoading(true);
-      _errorMessage = null;
+  required int mealId,  // ← ID de la comida a actualizar
+  required MealType mealType,
+  required List<MealFoodItemRequest> foods,
+  String? imageUrl,
+  String? notes,
+}) async {
+  try {
+    _setLoading(true);
+    _errorMessage = null;
 
-      final updatedMeal = await _mealRepository.updateMeal(
-        mealId: mealId,
-        mealType: mealType,
-        foods: foods,
-        imageUrl: imageUrl,
-        notes: notes,
-      );
+    // Crear el request (sin la fecha, ya que estamos actualizando)
+    final request = UpdateMealRequest(
+      mealType: mealType,
+      foods: foods,
+      photoUrl: imageUrl,
+      notes: notes,
+    );
 
-      // Actualizar en la lista
-      final index = _meals.indexWhere((m) => m.id == mealId);
-      if (index != -1) {
-        _meals[index] = updatedMeal;
-      }
+    // ✅ Llamar al repository con el ID y el request
+    final updatedMeal = await _mealRepository.updateMeal(mealId, request);
 
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
-      return false;
+    // Actualizar en la lista local
+    final index = _meals.indexWhere((m) => m.id == mealId);
+    if (index != -1) {
+      _meals[index] = updatedMeal;
     }
+
+    _setLoading(false);
+    return true;
+  } catch (e) {
+    _setError(e.toString());
+    _setLoading(false);
+    return false;
   }
+}
 
   /// Elimina una comida
   Future<bool> deleteMeal(int mealId) async {

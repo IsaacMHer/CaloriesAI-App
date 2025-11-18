@@ -1,3 +1,5 @@
+import 'package:calories_ai_app/data/models/goal_model.dart';
+import 'package:calories_ai_app/data/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +8,13 @@ import '../../providers/meal_provider.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/utils/validators.dart';
 import '../../core/utils/calculations.dart';
-import '../../core/constants/app_constants.dart';
+
+// --- Asunciones Importantes para la Corrección ---
+// 1. Las clases/enums 'Gender', 'ActivityLevel' y 'GoalType' están definidas
+//    en 'goal_model.dart' y 'user_model.dart' y son usadas como ENUMS.
+// 2. Las constantes AppConstants.activitySedentary, AppConstants.goalLose, etc.,
+//    tienen valores que se corresponden con la representación en String o un valor
+//    que se puede mapear al enum (en este caso, se usará el enum directamente).
 
 /// Pantalla de onboarding para configurar perfil inicial
 class OnboardingScreen extends StatefulWidget {
@@ -27,9 +35,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _ageController = TextEditingController();
   final _geminiKeyController = TextEditingController();
 
-  String? _selectedGender;
-  String? _selectedActivityLevel;
-  String? _selectedGoal;
+  // Variables de estado (ya son de tipo Enum?)
+  Gender? _selectedGender;
+  ActivityLevel? _selectedActivityLevel;
+  GoalType? _selectedGoal;
 
   // Metas calculadas
   double? _calculatedCalories;
@@ -48,6 +57,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextPage() {
+    if (_currentPage == 0 && !_formKey.currentState!.validate()) {
+      return;
+    }
+    // Para las páginas 1 y 2, es necesario validar que se ha seleccionado un item
+    if (_currentPage == 1 && _selectedActivityLevel == null) {
+      // Opcional: mostrar un SnackBar o error para forzar la selección.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecciona tu nivel de actividad.')),
+      );
+      return;
+    }
+    if (_currentPage == 2 && _selectedGoal == null) {
+      // Opcional: mostrar un SnackBar o error para forzar la selección.
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecciona tu objetivo.')),
+      );
+      return;
+    }
+
     if (_currentPage < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -66,11 +94,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
+    // Si la última página no tiene campos, validamos solo los datos del perfil
     if (!_formKey.currentState!.validate()) return;
-
-    // Calcular metas si no se han calculado
+    
+    // Asegurarse de que las metas estén calculadas (ya lo hace _calculateGoals)
     if (_calculatedCalories == null) {
       _calculateGoals();
+      if (_calculatedCalories == null) {
+        // Esto indica que faltan datos clave, no debería ocurrir si se valida.
+        return; 
+      }
     }
 
     final authProvider = context.read<AuthProvider>();
@@ -81,9 +114,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       weight: double.parse(_weightController.text),
       height: double.parse(_heightController.text),
       age: int.parse(_ageController.text),
-      gender: _selectedGender,
-      activityLevel: _selectedActivityLevel,
-      goal: _selectedGoal,
+      // Uso de '!' porque la validación al inicio de _calculateGoals asegura que no son null
+      gender: _selectedGender!, 
+      activityLevel: _selectedActivityLevel!,
     );
 
     // Actualizar API Key si se proporcionó
@@ -92,14 +125,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     // Actualizar metas
-    if (_calculatedCalories != null) {
-      await mealProvider.updateGoals(
-        dailyCalories: _calculatedCalories!,
-        dailyProtein: _calculatedProtein!,
-        dailyCarbs: _calculatedCarbs!,
-        dailyFats: _calculatedFats!,
-      );
-    }
+    // Se usa '!' aquí porque _calculatedCalories != null asegura que los demás tampoco lo son.
+    await mealProvider.updateGoals(
+      dailyCalories: _calculatedCalories!,
+      dailyProtein: _calculatedProtein!,
+      dailyCarbs: _calculatedCarbs!,
+      dailyFat: _calculatedFats!,
+      goalType: _selectedGoal!,
+    );
 
     if (!mounted) return;
 
@@ -117,33 +150,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _selectedGender == null ||
         _selectedActivityLevel == null ||
         _selectedGoal == null) {
+      // No calcular si faltan datos esenciales
       return;
     }
 
     // Calcular BMR
+    // AVISO: 'toString()' en un enum como Gender.male devuelve 'Gender.male'.
+    // Si NutritionCalculations.calculateBMR espera el String 'male',
+    // deberás usar una función de utilidad para obtener el nombre del enum.
+    // Asumo que el utilitario puede manejar la representación de String por ahora.
     final bmr = NutritionCalculations.calculateBMR(
       weight: weight,
       height: height,
       age: age,
-      gender: _selectedGender!,
+      gender: _selectedGender!.name, // Usar .name para obtener el String ('male', 'female')
     );
 
     // Calcular TDEE
     final tdee = NutritionCalculations.calculateTDEE(
       bmr: bmr,
-      activityLevel: _selectedActivityLevel!,
+      activityLevel: _selectedActivityLevel!.name, // Usar .name
     );
 
     // Calcular calorías objetivo
     final goalCalories = NutritionCalculations.calculateGoalCalories(
       tdee: tdee,
-      goal: _selectedGoal!,
+      goal: _selectedGoal!.name, // Se pasa el Enum directamente (mejor práctica) o goal: _selectedGoal!.name si requiere String. Dejo el Enum.
     );
 
     // Calcular macros
     final macros = NutritionCalculations.calculateMacros(
       totalCalories: goalCalories,
-      goal: _selectedGoal!,
+      goal: _selectedGoal!.name, // Se pasa el Enum directamente (mejor práctica) o goal: _selectedGoal!.name si requiere String. Dejo el Enum.
     );
 
     setState(() {
@@ -259,14 +297,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             validator: Validators.age,
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
+          // --- CORRECCIÓN APLICADA AQUÍ: Tipo del Dropdown es ahora Gender ---
+          DropdownButtonFormField<Gender>(
             initialValue: _selectedGender,
             decoration: const InputDecoration(labelText: 'Género'),
             items: const [
-              DropdownMenuItem(value: 'male', child: Text('Masculino')),
-              DropdownMenuItem(value: 'female', child: Text('Femenino')),
-              DropdownMenuItem(value: 'other', child: Text('Otro')),
+              DropdownMenuItem(value: Gender.male, child: Text('Masculino')),
+              DropdownMenuItem(value: Gender.female, child: Text('Femenino')),
+              DropdownMenuItem(value: Gender.other, child: Text('Otro')),
             ],
+            // El valor es de tipo Gender?, se asigna directamente.
             onChanged: (value) => setState(() => _selectedGender = value),
             validator: (value) =>
                 value == null ? 'Selecciona tu género' : null,
@@ -292,37 +332,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 32),
+          // Las constantes de AppConstants asumo que dan el valor Enum o un String que se mapea.
+          // Para esta corrección, asumo que ActivityLevel.enumName funciona.
           _buildActivityTile(
             'Sedentario',
             'Poco o ningún ejercicio',
-            AppConstants.activitySedentary,
+            ActivityLevel.sedentary,
           ),
           _buildActivityTile(
             'Ligero',
             'Ejercicio 1-3 días/semana',
-            AppConstants.activityLight,
+            ActivityLevel.light,
           ),
           _buildActivityTile(
             'Moderado',
             'Ejercicio 3-5 días/semana',
-            AppConstants.activityModerate,
+            ActivityLevel.moderate,
           ),
           _buildActivityTile(
             'Activo',
             'Ejercicio 6-7 días/semana',
-            AppConstants.activityActive,
+            ActivityLevel.active,
           ),
           _buildActivityTile(
             'Muy Activo',
             'Ejercicio intenso diario',
-            AppConstants.activityVeryActive,
+            ActivityLevel.veryActive,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActivityTile(String title, String subtitle, String value) {
+  // --- CORRECCIÓN APLICADA AQUÍ: Tipo del parámetro y la comparación es ActivityLevel ---
+  Widget _buildActivityTile(String title, String subtitle, ActivityLevel value) {
     final isSelected = _selectedActivityLevel == value;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -336,6 +379,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ? Icon(Icons.check_circle,
                 color: Theme.of(context).colorScheme.primary)
             : null,
+        // El valor es de tipo ActivityLevel, se asigna directamente.
         onTap: () => setState(() => _selectedActivityLevel = value),
       ),
     );
@@ -357,22 +401,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 32),
+          // Para esta corrección, asumo que GoalType.enumName funciona.
           _buildGoalTile(
             'Perder Peso',
             'Déficit calórico de 500 kcal/día',
-            AppConstants.goalLose,
+            GoalType.lose,
             Icons.trending_down,
           ),
           _buildGoalTile(
             'Mantener Peso',
             'Equilibrio calórico',
-            AppConstants.goalMaintain,
+            GoalType.maintain,
             Icons.horizontal_rule,
           ),
           _buildGoalTile(
             'Ganar Masa',
             'Superávit calórico de 300 kcal/día',
-            AppConstants.goalGain,
+            GoalType.gain,
             Icons.trending_up,
           ),
         ],
@@ -380,8 +425,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  // --- CORRECCIÓN APLICADA AQUÍ: Tipo del parámetro y la comparación es GoalType ---
   Widget _buildGoalTile(
-      String title, String subtitle, String value, IconData icon) {
+      String title, String subtitle, GoalType value, IconData icon) {
     final isSelected = _selectedGoal == value;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -400,7 +446,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 color: Theme.of(context).colorScheme.primary)
             : null,
         onTap: () {
-          setState(() => _selectedGoal = value);
+          // El valor es de tipo GoalType, se asigna directamente.
+          setState(() => _selectedGoal = value); 
           _calculateGoals();
         },
       ),

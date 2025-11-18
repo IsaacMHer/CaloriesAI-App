@@ -68,40 +68,44 @@ class FoodProvider with ChangeNotifier {
 
   /// Crea un alimento personalizado
   Future<bool> createCustomFood({
-    required String name,
-    required double calories,
-    required double protein,
-    required double carbs,
-    required double fat,
-    required String servingSize,
-    String servingUnit = 'g',
-    String? category,
-  }) async {
-    try {
-      _setLoading(true);
-      _errorMessage = null;
+  required String name,
+  required double calories,
+  required double protein,
+  required double carbs,
+  required double fat,
+  required String servingSize,
+  String servingUnit = 'g',
+  String? category,
+}) async {
+  try {
+    _setLoading(true);
+    _errorMessage = null;
 
-      final food = await _foodRepository.createCustomFood(
-        name: name,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat,
-        servingSize: servingSize,
-        servingUnit: servingUnit,
-        category: category,
-      );
+    // CREAR EL OBJETO REQUEST (armar el "paquete")
+    final request = CreateCustomFoodRequest(
+      name: name,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+      servingSize: servingSize,
+      category: category,
+    );
 
-      _customFoods.add(food);
+    // ENVIAR EL OBJETO COMPLETO AL REPOSITORY
+    final food = await _foodRepository.createCustomFood(request);
 
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
-      return false;
-    }
+    _customFoods.add(food);
+
+    _setLoading(false);
+    return true;
+  } catch (e) {
+    _setError(e.toString());
+    _setLoading(false);
+    return false;
   }
+}
+
 
   /// Carga los alimentos personalizados del usuario
   Future<void> loadCustomFoods() async {

@@ -93,6 +93,20 @@ class FoodRepository {
     return apiResponse.data!;
   }
 
+  // Obtener alimentos personalizados
+  Future<List<FoodModel>> getCustomFoods() async {
+    try {
+      // Usamos search con un query vacío o "*" para obtener todos
+      // y luego filtramos solo los custom
+      final allFoods = await searchFoods('', limit: 100);
+      
+      // Filtrar solo los alimentos custom (isCustom = true)
+      return allFoods.where((food) => food.isCustom == true).toList();
+    } catch (e) {
+      throw Exception('Error al obtener alimentos personalizados: $e');
+    }
+  }
+
   /// Actualiza un alimento personalizado
   Future<FoodModel> updateCustomFood(int id, CreateCustomFoodRequest request) async {
     final response = await _apiService.put(

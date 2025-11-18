@@ -83,7 +83,6 @@ class AuthProvider with ChangeNotifier {
 
   /// Actualiza el perfil del usuario
   Future<bool> updateProfile({
-    required String name,
     double? weight,
     double? height,
     int? age,
@@ -95,7 +94,6 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = null;
 
       _user = await _authRepository.updateProfile(
-        name: name,
         weight: weight,
         height: height,
         age: age,

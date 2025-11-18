@@ -236,6 +236,14 @@ class MealFoodItemRequest {
       'unit': unit,
     };
   }
+
+  factory MealFoodItemRequest.fromJson(Map<String, dynamic> json) {
+    return MealFoodItemRequest(
+      foodId: json['foodId'] as int,
+      quantity: (json['quantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+    );
+  }
 }
 
 /// CreateMealRequest - request para crear/actualizar comida
@@ -262,6 +270,41 @@ class CreateMealRequest {
       'notes': notes,
       'foods': foods.map((f) => f.toJson()).toList(),
     };
+  }
+}
+
+/// Request para actualizar una comida existente
+class UpdateMealRequest {
+  final MealType mealType;
+  final String? photoUrl;
+  final String? notes;
+  final List<MealFoodItemRequest> foods;
+
+  UpdateMealRequest({
+    required this.mealType,
+    this.photoUrl,
+    this.notes,
+    required this.foods,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'mealType': mealType.toInt(),
+      'photoUrl': photoUrl,
+      'notes': notes,
+      'foods': foods.map((f) => f.toJson()).toList(),
+    };
+  }
+
+  factory UpdateMealRequest.fromJson(Map<String, dynamic> json) {
+    return UpdateMealRequest(
+      mealType: json['mealType'],
+      photoUrl: json['photoUrl'] as String?,
+      notes: json['notes'] as String?,
+      foods: (json['foods'] as List<dynamic>)
+          .map((f) => MealFoodItemRequest.fromJson(f as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }
 

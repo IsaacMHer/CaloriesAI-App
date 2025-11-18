@@ -3,7 +3,6 @@ import '../models/goal_model.dart';
 import '../models/api_response_model.dart';
 import '../services/api_service.dart';
 import '../../core/constants/api_constants.dart';
-import 'package:intl/intl.dart';
 
 /// Repositorio para manejar comidas y metas nutricionales
 class MealRepository {
@@ -73,7 +72,7 @@ class MealRepository {
   }
 
   /// Actualiza una comida
-  Future<MealModel> updateMeal(int mealId, CreateMealRequest request) async {
+  Future<MealModel> updateMeal(int mealId, UpdateMealRequest request) async {
     final response = await _apiService.put(
       ApiConstants.updateMeal(mealId),
       data: request.toJson(),
